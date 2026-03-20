@@ -1,0 +1,49 @@
+name: Build Windows App
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '6.0.x'
+          
+      - name: Restore dependencies
+        run: dotnet restore
+        
+      - name: Build
+        run: dotnet publish -c Release -r win-x64 --self-contained true
+        
+      - name: Upload EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: MyCalc.exe
+          path: |
+            **/publish/*.exe
+            **/publish/*.dll
+          
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          release_name: Release ${{ github.run_number }}
+          
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: MyCalc.exe
+          asset_name: MyCalc.exe
+          asset_content_type: application/x-msdownload
